@@ -41,7 +41,6 @@ typedef struct
 
 typedef struct
 {
-	u8 Unknown;
 	u8 KeyNum_1;
 	u8 KeyNum_2;
 	u8 KeyNum_3;
@@ -64,6 +63,7 @@ typedef struct char_info
 
 typedef struct char_info_struct
 {
+	u64 new_troll[4];
 	u64 field0_0x0[77];
 	u32 field1_0x268;
 	u16 field2_0x26c;
@@ -83,10 +83,12 @@ typedef struct char_info_struct
 
 typedef struct css_info_struct_sub {
 	u64 field0_0x0[70];
+	u64 new_troll[4];
 	struct char_info_struct* ptr2[6];
 };
 
 typedef struct css_info_struct {
+	u64 new_troll[4];
 	u64 field_00[70];
 	css_info_struct_sub* ptr1;
 	u64 field_238[22];

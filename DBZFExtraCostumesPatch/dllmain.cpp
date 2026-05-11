@@ -21,9 +21,10 @@ void* SetCostumeCustomizeMenu2_Sig = sigScan(
     "xxxxxxxx");
 
 // v1.31 = 0x1406ae83d
+// v1.50 = 0x1406d37d1
 void* GetPlayer1InputState_Sig = sigScan(
-    "\x44\x3B\x05\x2A\x2A\x2A\x2A\x44\x89\x05\x2A\x2A\x2A\x2A\x7E\x2A\x8B\xD7",
-    "xxx????xxx????x?xx");
+    "\x48\x8D\x05\x2A\x2A\x2A\x2A\xE9\x2A\x2A\x2A\x2A\x48\x3B\x0D\x2A\x2A\x2A\x2A\x0F\x94\xC0\x84\xC0\x74\x2A\x48\x8D\x05\x2A\x2A\x2A\x2A\xE9\x2A\x2A\x2A\x2A\x48\x3B\x0D\x2A\x2A\x2A\x2A\x0F\x94\xC0\x84\xC0\x74\x2A\x48\x8D\x05\x2A\x2A\x2A\x2A\xE9\x2A\x2A\x2A\x2A\x48\x3B\x0D\x2A\x2A\x2A\x2A\x0F\x94\xC0\x84\xC0\x74\x2A\x48\x8D\x05\x2A\x2A\x2A\x2A\xE9\x2A\x2A\x2A\x2A\x48\x3B\x0D\x2A\x2A\x2A\x2A\x0F\x94\xC0\x84\xC0\x74\x2A\x48\x8D\x05\x2A\x2A\x2A\x2A",
+    "xxx????x????xxx????xxxxxx?xxx????x????xxx????xxxxxx?xxx????x????xxx????xxxxxx?xxx????x????xxx????xxxxxx?xxx????");
 
 // v1.31 = 0x1406ae5bb
 void* GetPlayer2InputState_Sig = sigScan(
@@ -85,23 +86,39 @@ void* mini_ColorSelectAddNOP_Sig = sigScan(
     "\x84\xC0\x75\x2A\x8B\xFD\x48\x89\x74\x24\x2A\x8B\xF5\x39\x6B\x2A",
     "xxx?xxxxxx?xxxx?");
 
-
 // v1.31 = 0x14050739e
-void* KismetExectueMessage_Sig = sigScan(
+void* KismetExecuteMessage_Sig = sigScan(
     "\x80\xFA\x01\x75\x2A\x53",
     "xxxx?x");
+
+// v1.50 = 0x1406b6b01
+void* ForceColor1_Sig = sigScan(
+    "\xC6\x81\x2A\x2A\x2A\x2A\x01\x48\x83\xC4\x20\x41\x5E",
+    "xx????xxxxxxx");
 
 bool isChangeCostume = false;
 
 UE4PlayerInput* PlayerInput1;
 UE4PlayerInput* PlayerInput2;
-UE4PlayerInput_Keyboard* KBMInput;
 
 uint64_t CurrentBaseAddress = GetCurrentBaseAddress();
 uint64_t baseAddressGhidra = 0x140000000;
 
+#include <windows.h>
+
 int GetCostumeFromPlayerInput(void)
 {
+    const int keyMap[] = { '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+
+    for (int i = 0; i < 9; i++)
+    {
+        if (GetAsyncKeyState(keyMap[i]) & 0x8000)
+        {
+            // Keyboard input
+            return i;
+        }
+    }
+    
     int result = 0;
 
     // controller input
@@ -120,48 +137,6 @@ int GetCostumeFromPlayerInput(void)
     else if (PlayerInput1->R2 || PlayerInput2->R2)
     {
         result = 4; // Costume 5
-    }
-
-    // keyboard input
-    else if (KBMInput->KeyNum_1)
-    {
-        result = 0; // Costume 1
-    }
-    else if (KBMInput->KeyNum_2)
-    {
-        result = 1; // Costume 2
-    }
-    else if (KBMInput->KeyNum_3)
-    {
-        result = 2; // Costume 3
-    }
-    else if (KBMInput->KeyNum_4)
-    {
-        result = 3; // Costume 4
-    }
-    else if (KBMInput->KeyNum_5)
-    {
-        result = 4; // Costume 5
-    }
-    else if (KBMInput->KeyNum_6)
-    {
-        result = 5; // Costume 6
-    }
-    else if (KBMInput->KeyNum_7)
-    {
-        result = 6; // Costume 7
-    }
-    else if (KBMInput->KeyNum_8)
-    {
-        result = 7; // Costume 8
-    }
-    else if (KBMInput->KeyNum_9)
-    {
-        result = 8; // Costume 9
-    }
-    else if (KBMInput->KeyNum_0)
-    {
-        result = 9; // Costume 10
     }
 
     return result;
@@ -288,7 +263,7 @@ HOOK(u64, __fastcall, hook_ColorUp, mini_ColorSelectAdd_Sig,
 HOOK(u64, __fastcall, hook_ColorDown, mini_ColorSelectSubtract_Sig,
     color_select_mini_struct* a1, int a2, int a3)
 {
-    printf("hook_ColorDown called; a1->field08 = %d\n", a1->field08);
+    // printf("hook_ColorDown called; a1->field08 = %d\n", a1->field08);
     
     if (a1->field08 == 60 || a1->field08 == 59) // only affect color select
     {
@@ -309,10 +284,10 @@ HOOK(u64, __fastcall, hook_ColorDown, mini_ColorSelectSubtract_Sig,
     return result;
 }
 
-HOOK(void, __stdcall, hook_KismetExectueMessage, KismetExectueMessage_Sig, u64* Message, u8 Verbosity)
+HOOK(void, __stdcall, hook_KismetExecuteMessage, KismetExecuteMessage_Sig, u64* Message, u8 Verbosity)
 {
     printf("[Script Msg] %S\r\n", Message);
-    return orig_hook_KismetExectueMessage(Message, Verbosity);
+    return orig_hook_KismetExecuteMessage(Message, Verbosity);
 }
 
 BOOL APIENTRY DllMain( HMODULE hModule,
@@ -334,18 +309,19 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
         if (config::enableCostumes)
         {
-            if (GetPlayer1InputState_Sig && GetPlayer2InputState_Sig && GetPlayerInputStateKeyboard_Sig)
+            if (GetPlayer1InputState_Sig)
             {
-                PlayerInput1 = (UE4PlayerInput*)(GetAddressFromGlobalRef((u64)GetPlayer1InputState_Sig) + 4);
-                PlayerInput2 = (UE4PlayerInput*)(GetAddressFromGlobalRef((u64)GetPlayer2InputState_Sig) + 24);
-                KBMInput = (UE4PlayerInput_Keyboard*)GetAddressFromGlobalRef((u64)GetPlayerInputStateKeyboard_Sig);
+                u64 inputBase = GetAddressFromGlobalRef((u64)GetPlayer1InputState_Sig);
+                
+                PlayerInput1 = (UE4PlayerInput*)inputBase;
+                PlayerInput2 = (UE4PlayerInput*)(inputBase + 0x20);
+                printf("Player 1 Input Address at 0x%p\n", (u64)PlayerInput1);
+                printf("Player 2 Input Address at 0x%p\n", (u64)PlayerInput2);
                 if (DEBUG) printf("All input state signatures successful\n");
             }
             else
             {
                 if (!GetPlayer1InputState_Sig) printf("Signature GetPlayer1InputState broken!\n");
-                if (!GetPlayer2InputState_Sig) printf("Signature GetPlayer2InputState broken!\n");
-                if (!GetPlayerInputStateKeyboard_Sig) printf("Signature GetPlayerInputStateKeyboard broken!\n");
             }
 
             if (GetCostumeCSS_Sig) // called when a character is selected in the css
@@ -387,6 +363,17 @@ BOOL APIENTRY DllMain( HMODULE hModule,
             else
             {
                 if (!NOPCheck3_Sig) printf("Signature NOPCheck3 broken!\n");
+            }
+
+            if (ForceColor1_Sig)
+            {
+                WRITE_NOP(ForceColor1_Sig, 7);
+
+                if (DEBUG) printf("Signature ForceColor1_Sig found at 0x%llx\n", ForceColor1_Sig);
+            }
+            else
+            {
+                if (!ForceColor1_Sig) printf("Signature ForceColor1_Sig broken!\n");
             }
 
             if (SetCostumeCustomizeMenu2_Sig) // called when selecting from customize menu
@@ -443,14 +430,14 @@ BOOL APIENTRY DllMain( HMODULE hModule,
             }
         }
 
-        if (KismetExectueMessage_Sig && config::PrintBlueprintErrors)
+        if (KismetExecuteMessage_Sig && config::PrintBlueprintErrors)
         {
-            if (DEBUG) printf("Signature for KismetExectueMessage fount at 0x%p, real address at 0x%p\n", ((u64)KismetExectueMessage_Sig - CurrentBaseAddress) + baseAddressGhidra, ((u64)KismetExectueMessage_Sig - CurrentBaseAddress) + baseAddressGhidra);
-            INSTALL_HOOK(hook_KismetExectueMessage);
+            if (DEBUG) printf("Signature for KismetExecuteMessage fount at 0x%p, real address at 0x%p\n", ((u64)KismetExecuteMessage_Sig - CurrentBaseAddress) + baseAddressGhidra, ((u64)KismetExecuteMessage_Sig - CurrentBaseAddress) + baseAddressGhidra);
+            INSTALL_HOOK(hook_KismetExecuteMessage);
         }
         else
         {
-            if (DEBUG) printf("Signature for KismetExectueMessage_Sig broken!\n");
+            if (DEBUG) printf("Signature for KismetExecuteMessage_Sig broken!\n");
         }
 
         config::init(); // repeat for messages
